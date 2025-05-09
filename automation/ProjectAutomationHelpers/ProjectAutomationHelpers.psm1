@@ -204,7 +204,8 @@ function Add-SubIssues {
             $FrontMatter = Get-FrontMatter -FilePath $SubIssue.FullName
             $NoFrontMatterIssueBodyFilePath = Remove-FrontMatterFromFile -FilePath $SubIssue.FullName
 
-            $CreatedSubIssue = Add-Issue -title $FrontMatter.title -bodyFilePath $NoFrontMatterIssueBodyFilePath.FullName -ProjectFields $FrontMatter.fields -Labels $FrontMatter.labels -Assignees $FrontMatter.assignees -Milestones $FrontMatter.milestones
+            $ConcatenatedTitle = "$($item.title) - $($FrontMatter.title)"
+            $CreatedSubIssue = Add-Issue -title $ConcatenatedTitle -bodyFilePath $NoFrontMatterIssueBodyFilePath.FullName -ProjectFields $FrontMatter.fields -Labels $FrontMatter.labels -Assignees $FrontMatter.assignees -Milestones $FrontMatter.milestones
             try {
                 Set-SubIssue -ParentNodeId $ParentNodeId -ChildNodeId $CreatedSubIssue.issueNodeId
             } catch {
