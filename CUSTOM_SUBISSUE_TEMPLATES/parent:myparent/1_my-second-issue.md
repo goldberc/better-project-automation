@@ -2,27 +2,27 @@
 title: "1 - My Second Sub Issue"
 labels:
  - "next step"
- fields:
+fields:
     automation:
-      value: |
-        [{
-            "trigger": "on:close",
-            "action": {
-                "type": "set-field",
-                "field": "status",
-                "value": "done"
+        value: |
+            [{
+                "trigger": "on:close",
+                "action": {
+                    "type": "set-field",
+                    "field": "status",
+                    "value": "done"
+                },
+                "targets": ["parent"]
             },
-            "targets": ["parent"]
-        },
-        {
-            "trigger": "on:close",
-            "action": {
-                "type": "set-field",
-                "field": "custom field",
-                "value": "custom value after close"
-            },
-            "targets": ["self", "parent", ""sub-issues"]
-        }]
+            {
+                "trigger": "on:close",
+                "action": {
+                    "type": "set-field",
+                    "field": "custom field",
+                    "value": "custom value after close"
+                },
+                "targets": ["self", "parent", "sub-issues"]
+            }]
 assignees:
  - "crlgb"
 milestones:

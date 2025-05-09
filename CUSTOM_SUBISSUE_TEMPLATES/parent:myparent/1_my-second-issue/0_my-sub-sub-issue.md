@@ -2,7 +2,7 @@
 title: "0.1 - My First Sub Sub Issue"
 labels:
  - "next step"
- fields:
+fields:
     automation:
       type: string # is default type, not needed
       value: |
