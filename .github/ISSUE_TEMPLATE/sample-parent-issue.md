@@ -5,6 +5,8 @@ about: This template creates a sample parent issue to trigger the automatic crea
 title: "[Parent] XYZ"
 labels: automation:create:subissues, parent:myparent
 assignees: ''
+projects:
+- 'goldberc/1'
 
 ---
 
