@@ -1,0 +1,55 @@
+name: Better Automation - Add sub-issues
+
+on:
+  issues:
+    types:
+      - labeled
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  add-subissues:
+    if: github.event.label.name == 'automation:create:subissues'
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Add sub-issues
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          PROJECT_OWNER: ${{ vars.PROJECT_OWNER }}
+          PROJECT_ID: ${{ vars.PROJECT_ID }}
+          REPO_OWNER: ${{ vars.REPO_OWNER }}
+          REPO_NAME: ${{ vars.REPO_NAME }}
+          SILENT_ERRORS: ${{ vars.SILENT_ERRORS }}
+        run: |
+          ### IMPORT MODULE
+          $modulePath = "${{ github.workspace }}/automation/ProjectAutomationHelpers/ProjectAutomationHelpers.psm1"
+          try {
+              Import-Module $modulePath -Force
+          }
+          catch {
+              Write-Error "Failed to import module $modulePath"
+              exit 1
+          }
+          ### RUN TASK
+          $url = "${{ github.event.issue.html_url }}"
+          $labels = @'
+            ${{ toJson(github.event.issue.labels.*.name) }}
+          '@ | ConvertFrom-Json
+          Add-SubIssues -issueUrl $url -labels $labels

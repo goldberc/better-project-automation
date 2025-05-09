@@ -1,0 +1,50 @@
+name: Better Automation - On issue closed
+
+on:
+  issues:
+    types:
+      - closed
+
+permissions:
+  id-token: write
+
+jobs:
+  run-automations:
+    if: contains(github.event.issue.labels.*.name, 'automation:on:close')
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Generate token
+      id: generate_token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ secrets.APP_CLIENT_ID }}
+        private-key: ${{ secrets.APP_KEY }}
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ steps.generate_token.outputs.token }}
+
+    - name: Invoke automations
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        PROJECT_OWNER: ${{ vars.PROJECT_OWNER }}
+        PROJECT_ID: ${{ vars.PROJECT_ID }}
+        REPO_OWNER: ${{ vars.REPO_OWNER }}
+        REPO_NAME: ${{ vars.REPO_NAME }}
+        SILENT_ERRORS: ${{ vars.SILENT_ERRORS }}
+      run: |
+        ### IMPORT MODULE
+        $modulePath = "${{ github.workspace }}/automation/ProjectAutomationHelpers/ProjectAutomationHelpers.psm1"
+        try {
+            Import-Module $modulePath -Force
+        }
+        catch {
+            Write-Error "Failed to import module $modulePath"
+            exit 1
+        }
+        ### RUN TASK
+        $urlFromEvent = "${{ github.event.issue.html_url }}"
+        Invoke-AutomationsWithTrigger -url $urlFromEvent -trigger 'automation:on:close'
