@@ -23,6 +23,8 @@ fields:
                 },
                 "targets": ["self", "parent", "sub-issues"]
             }]
+    status:
+      value: in progress
 assignees:
  - "crlgb"
 milestones:

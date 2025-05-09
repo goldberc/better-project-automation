@@ -24,6 +24,8 @@ fields:
             },
             "targets": ["self", "parent"]
         }]
+    status:
+        value: todo
 assignees:
  - "crlgb"
 milestones:
