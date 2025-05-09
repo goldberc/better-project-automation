@@ -52,11 +52,11 @@ function Remove-FrontMatterFromFile {
         [string]$FilePath
     )
 
-    $OutFile = New-TemporaryFile -Prefix 'ISSUE_TEMPLATE_NO_FRONTMATTER' -Suffix '.md'
-    $FrontMatterString = Get-FrontMatter -FilePath $FilePath -Raw
-    $Content = Get-Content -Path $FilePath -Raw
-    $Content = $Content -replace $FrontMatterString, ''
-    $Content | Set-Content -Path $OutFile -Force
+    $OutFile = New-TemporaryFile
+    $FrontMatterRegex = Get-FrontMatterRegex
+    $FileContent = Get-Content $FilePath -Raw
+    $FileContent = $FileContent -replace $FrontMatterRegex, ''
+    $FileContent | Set-Content -Path $OutFile.FullName -Force
     return $OutFile
 }
 
@@ -77,7 +77,11 @@ function Get-RepoName {
 }
 
 function Get-ProjectUniqueId {
-    gh project view (Get-ProjectId) --owner (Get-ProjectOwner) --format json | ConvertFrom-Json | Select-Object -ExpandProperty id
+    if (-not $env:PROJECT_UNIQUE_ID) {
+        $env:PROJECT_UNIQUE_ID = gh project view (Get-ProjectId) --owner (Get-ProjectOwner) --format json | ConvertFrom-Json | Select-Object -ExpandProperty id
+    }
+
+    return $env:PROJECT_UNIQUE_ID
 }
 
 function Get-FieldId {
@@ -86,15 +90,25 @@ function Get-FieldId {
         [string]$field
     )
 
-    $data = gh project field-list (Get-ProjectId) --format json --owner (Get-ProjectOwner) | ConvertFrom-Json
-    $found = $data.fields | Where-Object { $_.name -eq $field } | Select-Object -First 1
-    if (-not $found) {
-        Write-Warning "Field with name $field not found in project $(Get-ProjectId)"
+    $fieldsFromEnv = $env:PROJECT_FIELD_IDS ? ($env:PROJECT_FIELD_IDS | ConvertFrom-Json -AsHashtable) : @{}
+    $fieldsFromEnv = [HashTable]::New($fieldsFromEnv, [StringComparer]::OrdinalIgnoreCase)
+    if ($fieldsFromEnv.Keys -contains $field) {
+        return $fieldsFromEnv.$field
+    } else {
+        $data = gh project field-list (Get-ProjectId) --format json --owner (Get-ProjectOwner) | ConvertFrom-Json
+        $found = $data.fields | Where-Object { $_.name -eq $field } | Select-Object -First 1
+        if (-not $found) {
+            Write-Warning "Field with name $field not found in project $(Get-ProjectId)"
+        }
+        if (-not $found.id) {
+            Write-Warning "Field with name $field has no id"
+        }
+
+        $fieldsFromEnv.$field = $found.id
+        $env:PROJECT_FIELD_IDS = $fieldsFromEnv | ConvertTo-Json -Compress
+
+        return $found.id
     }
-    if (-not $found.id) {
-        Write-Warning "Field with name $field has no id"
-    }
-    return $found.id
 }
 
 function Get-FieldType {
@@ -103,27 +117,65 @@ function Get-FieldType {
         [string]$field
     )
 
-    $data = gh project field-list (Get-ProjectId) --format json --owner (Get-ProjectOwner) | ConvertFrom-Json
-    $found = $data.fields | Where-Object { $_.name -eq $field } | Select-Object -First 1
-    if (-not $found) {
-        Write-Warning "Field with name $field not found in project $(Get-ProjectId)"
+    $fieldsFromEnv = $env:PROJECT_FIELD_TYPES ? ($env:PROJECT_FIELD_TYPES| ConvertFrom-Json -AsHashtable) : @{}
+    $fieldsFromEnv = [HashTable]::New($fieldsFromEnv, [StringComparer]::OrdinalIgnoreCase)
+    if ($fieldsFromEnv.Keys -contains $field) {
+        return $fieldsFromEnv.$field
+    } else {
+        $data = gh project field-list (Get-ProjectId) --format json --owner (Get-ProjectOwner) | ConvertFrom-Json
+        $found = $data.fields | Where-Object { $_.name -eq $field } | Select-Object -First 1
+        if (-not $found) {
+            Write-Warning "Field with name $field not found in project $(Get-ProjectId)"
+        }
+        if (-not $found.type) {
+            Write-Warning "Field with name $field has no type"
+        }
+        
+        $fieldsFromEnv.$field = $found.type
+        $env:PROJECT_FIELD_TYPES = $fieldsFromEnv | ConvertTo-Json -Compress
+        
+        return $found.type
     }
-    if (-not $found.type) {
-        Write-Warning "Field with name $field has no type"
-    }
-    return $found.type
 }
 
 function Get-SelectionId {
     param(
         $FieldName,
         $OptionName
-    )
+    ) 
+
+    $selectionIdsFromEnv = $env:PROJECT_SELECTION_IDS ? ($env:PROJECT_SELECTION_IDS | ConvertFrom-Json -AsHashtable) : @{}
+    $selectionIdsFromEnv = [HashTable]::New($selectionIdsFromEnv, [StringComparer]::CurrentCultureIgnoreCase)
     try {
-        $data = gh project field-list (Get-ProjectId) --format json --owner (Get-ProjectOwner) | ConvertFrom-Json
-        $field = $data.fields | Where-Object { $_.name -eq $FieldName } | Select-Object -First 1
-        $option = $field.options | Where-Object { $_.name -eq $OptionName } | Select-Object -First 1
-        return $option.id
+        $MatchingField = $selectionIdsFromEnv.Keys | Where-Object { $_ -eq $FieldName } | Select-Object -First 1
+        if ($MatchingField) {
+            $MatchingOption = $selectionIdsFromEnv.$MatchingField.Keys | Where-Object { $_ -eq $OptionName } | Select-Object -First 1
+        }
+
+        if ($MatchingField -and $MatchingOption) {
+                return $selectionIdsFromEnv.$MatchingField.$MatchingOption
+        }
+        else {
+            $selectionIdsFromEnv.$FieldName = @{}
+            $data = gh project field-list (Get-ProjectId) --format json --owner (Get-ProjectOwner) | ConvertFrom-Json
+            $field = $data.fields | Where-Object { $_.name -eq $FieldName } | Select-Object -First 1
+            $thisOption = $field.options | Where-Object { $_.name -eq $OptionName } | Select-Object -First 1
+
+            $data.fields | ForEach-Object {
+                $fieldName = $_.name
+                if($_.options) {
+                    $selectionIdsFromEnv.$fieldName = @{}
+                    $_.options | ForEach-Object {
+                        $OptionName = $_.name
+                        $OptionId = $_.id
+                        $selectionIdsFromEnv.$fieldName.$OptionName = $OptionId
+                    }
+                }
+            }
+            $env:PROJECT_SELECTION_IDS = $selectionIdsFromEnv | ConvertTo-Json -Compress
+
+            return $thisOption.id    
+        }
     } catch {
         Write-Error "Failed to get selection id for field $FieldName and option $OptionName : $_"
     }
@@ -196,7 +248,7 @@ function Add-SubIssues {
 
     foreach ($TemplatePath in $SubIssueTemplatePaths) {
         
-        $SubIssuesToProcess = Get-ChildItem -Path $TemplatePath -Filter '*.md'
+        $SubIssuesToProcess = Get-ChildItem -Path $TemplatePath -Filter '*.md' | Sort-Object -Property BaseName
 
         foreach ($SubIssue in $SubIssuesToProcess) {
             Write-Host "Processing sub-issue template: $($SubIssue.FullName)"
@@ -222,7 +274,7 @@ function Add-SubIssues {
 
 function Add-Issue {
     param(
-        [string]$Repo = (Get-RepoName),
+        [string]$Repo = "$(Get-RepoOwner)/$(Get-RepoName)",
         [string]$Title,
         [string]$BodyFilePath,
         [hashtable]$ProjectFields,
@@ -232,10 +284,9 @@ function Add-Issue {
     )
 
     try {
-        if ($Milestones) {
-            $issueUrl = gh issue create --repo $repo --title "$title" --body-file $bodyFilePath --assignee "$($Assignees -join ',')" --label "$($Labels -join ',')" --milestone "$($Milestones -join ',')"
-        } else {
-            $issueUrl = gh issue create --repo $repo --title "$title" --body-file $bodyFilePath --assignee "$($Assignees -join ',')" --label "$($Labels -join ',')"
+        $issueUrl = gh issue create --repo $repo --title "$title" --body-file $bodyFilePath --assignee "$($Assignees -join ',')" --label "$($Labels -join ',')" --milestone "$($Milestones -join ',')"
+        if ($LastExitCode -ne 0) {
+            throw 'gh cli error'
         }
         $issueNodeId = (gh issue view $issueUrl --json id | ConvertFrom-Json).id
         Write-Host "[$title] Issue created: $($issueUrl), now adding to project"
@@ -380,7 +431,8 @@ function Get-AutomationConfigFromItem {
         if (-not $found) {
             Write-Warning "Automation config not found in item $($item.id)"
         }
-        return ($found | ConvertFrom-Json -AsHashtable)
+        $foundHashTable = $found | ConvertFrom-Json -AsHashtable
+        return $foundHashTable
     } catch {
         Write-CustomError -message "Failed to get automation config from item $($item.id) : $_" -exit -issueUrl $item.content.url
     }
@@ -411,13 +463,12 @@ function Set-Field {
                 gh project item-edit --id "$($item.id)" --field-id $FieldId --project-id (Get-ProjectUniqueId) --single-select-option-id ($SelectionId)
                 return
             }
-            'Date' {
-                gh project item-edit --id "$($item.id)" --field-id $FieldId --project-id (Get-ProjectUniqueId) --date $FieldValue
-                return
-            }
             Default {
-                gh project item-edit --id "$($item.id)" --field-id $FieldId --project-id (Get-ProjectUniqueId) --text $FieldValue
-                return
+                if ($isDate) {
+                    gh project item-edit --id "$($item.id)" --field-id $FieldId --project-id (Get-ProjectUniqueId) --date $FieldValue
+                } else {
+                    gh project item-edit --id "$($item.id)" --field-id $FieldId --project-id (Get-ProjectUniqueId) --text $FieldValue
+                }
             }
         }
     } catch {
@@ -454,6 +505,8 @@ function Invoke-Automations {
             Write-CustomError -message "Automation action type not found in item $($item.id)" -issueUrl $url -exit
         }
 
+        $NodeId = Get-NodeIdFromUrl -url $url
+
         switch ($ActionType) {
             'set-field' {
                 $FieldName = $Action.field
@@ -468,13 +521,12 @@ function Invoke-Automations {
 
                 foreach ($Target in $Targets) {
                     if ($Target -eq 'parent') {
-                        $ParentItem = Get-ParentItem -ChildNodeId $item.id
+                        $ParentItem = Get-ParentItem -ChildNodeId $NodeId
                         if (-not $ParentItem) {
                             Write-CustomError -message "Parent item not found for item $($item.id)" -issueUrl $url -exit
                         }
                         $TargetItems = @($ParentItem)
                     } elseif ($Target -eq 'sub-issues') {
-                        $NodeId = Get-NodeIdFromUrl -url $url
                         $SubIssues = Get-SubIssues -ParentNodeId $NodeId
                         $TargetItems = @($SubIssues | ForEach-Object {
                                 $SubIssueItem = Get-ProjectItem -issueUrl $_.url
@@ -531,7 +583,7 @@ function Write-CustomError {
         [switch]$exit
     )
 
-    $body = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $message"
+    $body = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] [ERROR] [better-project-automation] $message"
     if ($issueUrl) {
         if (-not $env:SILENT_ERRORS) {
             gh issue comment $issueUrl --body $body       
