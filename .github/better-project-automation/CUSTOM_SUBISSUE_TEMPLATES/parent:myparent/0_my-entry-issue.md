@@ -1,7 +1,7 @@
 ---
-title: "0 - My Entry Sub Issue"
+title: "My 1st Sub-Issue"
 labels:
- - "entry"
+ - "Level 1"
 fields:
     automation:
       type: string # is default type, not needed
@@ -11,7 +11,7 @@ fields:
             "action": {
                 "type": "set-field",
                 "field": "status",
-                "value": "in progress"
+                "value": "done"
             },
             "targets": ["self"]
         },
@@ -20,7 +20,7 @@ fields:
             "action": {
                 "type": "set-field",
                 "field": "custom field",
-                "value": "custom value after close"
+                "value": "custom value after close of 'My 1st Sub-Issue'"
             },
             "targets": ["self", "parent"]
         },
@@ -35,7 +35,7 @@ fields:
             "targets": ["self", "parent"]
         }]
     custom field: 
-      value: value from template
+      value: value from template for 'My 1st Sub-Issue'
     custom date field:
       value: 2023-10-01
       type: date
@@ -47,10 +47,10 @@ assignees:
 milestones:
  - "MS1"
 ---
-# My Entry Sub Issue
+# My 1st Sub-Issue
 
 This is a template for my entry issue.
 The title, labels, assignees, and milestones will be set automatically, based on the values defined in the YAML front matter.
 The field custom date field will be set to 2023-10-01 automatically.
 
-When this issue is closed, the status will be set to "in progress" automatically. The custom field will be set to "custom value after close" automatically, for both the parent and this issue.
+When this issue is closed, the status will be set to "done" automatically. The custom field will be set to "custom value after close of 'My 1st Sub-Issue'" automatically, for both the parent and this issue.
