@@ -1,6 +1,11 @@
 # Better Project Automation
 
-This repository contains code for an advanced form of GitHub project automation - based on PowerShell and GitHub Workflows.
+Advanced GitHub project automation - based on PowerShell and GitHub Workflows.
+
+## Demo
+
+Check-out the [demo project](https://github.com/orgs/goldberc/projects/1/views/1) to see the automation in action.
+The demo items were created based on the templates defined in the [`CUSTOM_SUBISSUE_TEMPLATES`](./.github/better-project-automation/CUSTOM_SUBISSUE_TEMPLATES/) directory.
 
 ## Features
 
