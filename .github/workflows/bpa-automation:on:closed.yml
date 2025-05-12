@@ -58,4 +58,4 @@ jobs:
         }
         ### RUN TASK
         $urlFromEvent = "${{ github.event.issue.html_url }}"
-        Invoke-AutomationsWithTrigger -url $urlFromEvent -trigger 'automation:on:close'
+        Invoke-AutomationsWithTrigger -url $urlFromEvent -trigger 'on:close'
