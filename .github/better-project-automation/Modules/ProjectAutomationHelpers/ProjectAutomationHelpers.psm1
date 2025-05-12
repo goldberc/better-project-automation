@@ -284,6 +284,11 @@ function Add-Issue {
     )
 
     try {
+        if ($ProjectFields) {
+            if ($ProjectFields.Keys -contains 'automation') {
+                $Labels += 'automation:on:close'
+            }
+        }
         $issueUrl = gh issue create --repo $repo --title "$title" --body-file $bodyFilePath --assignee "$($Assignees -join ',')" --label "$($Labels -join ',')" --milestone "$($Milestones -join ',')"
         if ($LastExitCode -ne 0) {
             throw 'gh cli error'
