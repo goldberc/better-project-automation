@@ -23,6 +23,16 @@ fields:
                 "value": "custom value after close"
             },
             "targets": ["self", "parent"]
+        },
+        {
+            "trigger": "on:close",
+            "action": {
+                "type": "set-field",
+                "field": "custom date field",
+                "field-type": "date",
+                "value": "2025-01-01"
+            },
+            "targets": ["self", "parent"]
         }]
     custom field: 
       value: value from template
@@ -41,8 +51,6 @@ milestones:
 
 This is a template for my entry issue.
 The title, labels, assignees, and milestones will be set automatically, based on the values defined in the YAML front matter.
+The field custom date field will be set to 2023-10-01 automatically.
 
-Based on `previous` and `next`, issues will be mentioned in the text. This will help in tracking the flow of issues and their relationships.
-
-When this issue is closed, the status will be set to "in progress" automatically.
-The `previous` and `next` fields are used to link issues together, creating a chain of related issues.
+When this issue is closed, the status will be set to "in progress" automatically. The custom field will be set to "custom value after close" automatically, for both the parent and this issue.

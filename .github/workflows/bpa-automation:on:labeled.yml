@@ -1,4 +1,4 @@
-name: Better Automation - Add sub-issues
+name: Better Project Automation - Add sub-issues
 
 on:
   issues:
@@ -39,13 +39,24 @@ jobs:
           SILENT_ERRORS: ${{ vars.SILENT_ERRORS }}
         run: |
           ### IMPORT MODULE
-          $modulePath = "${{ github.workspace }}/automation/ProjectAutomationHelpers/ProjectAutomationHelpers.psm1"
-          try {
-              Import-Module $modulePath -Force
-          }
-          catch {
-              Write-Error "Failed to import module $modulePath"
-              exit 1
+          $modules = @(
+            "${{ github.workspace }}/.github/better-project-automation/Modules/powershell-yaml/0.4.7/powershell-yaml.psm1"
+            "${{ github.workspace }}/.github/better-project-automation/Modules/ProjectAutomationHelpers/ProjectAutomationHelpers.psm1"
+          )
+          foreach ($module in $modules) {
+              if (Test-Path $module) {
+                  try {
+                      Import-Module $module -Force
+                  }
+                  catch {
+                      Write-Error "Failed to import module $module"
+                      exit 1
+                  }
+              }
+              else {
+                  Write-Error "Module $module not found"
+                  exit 1
+              }
           }
           ### RUN TASK
           $url = "${{ github.event.issue.html_url }}"

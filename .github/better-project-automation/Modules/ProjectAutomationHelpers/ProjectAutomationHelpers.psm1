@@ -519,6 +519,8 @@ function Invoke-Automations {
                     Write-CustomError -message "Automation field value not found in item $($item.id)" -issueUrl $url -exit
                 }
 
+                $isDate = $Action.'field-type' -eq 'date'
+
                 foreach ($Target in $Targets) {
                     if ($Target -eq 'parent') {
                         $ParentItem = Get-ParentItem -ChildNodeId $NodeId
@@ -540,7 +542,7 @@ function Invoke-Automations {
                     }
                     foreach ($TargetItem in $TargetItems) {
                         try {
-                            Set-Field -item $TargetItem -FieldName $FieldName -FieldValue $FieldValue
+                            Set-Field -item $TargetItem -FieldName $FieldName -FieldValue $FieldValue -isDate $isDate
                         } catch {
                             Write-CustomError -message "Failed to set field $FieldName with value $FieldValue in item $($TargetItem.id) : $_" -issueUrl $url
                         }
