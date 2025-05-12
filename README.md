@@ -93,11 +93,17 @@ The JSON format is an array of objects, each containing the following properties
 ]
 ```
 
-## GitHub Repository Setup
+## Getting Started
+
+### Code
+
+- copy the `.github/better-project-automation` directory to your repository
+- copy the workflows defined in the `.github/workflows` directory to your repository
+- add a copy of the license file to your repository indicating that the code is licensed under the same license as this repository
 
 ### GitHub App
 
-- install [better-project-automation-bot](https://github.com/apps/better-project-automation-bot) to the repository where issues will be created and Actions will run
+- install [better-project-automation-bot](https://github.com/apps/better-project-automation-bot) to the organization and repository where issues will be created and Actions will run
 - this is needed since GitHub workflows cannot access organization projects directly
 - you are able to review the permissions of the app
 
