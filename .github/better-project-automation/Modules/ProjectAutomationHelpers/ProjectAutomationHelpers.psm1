@@ -296,6 +296,7 @@ function Add-Issue {
         $issueNodeId = (gh issue view $issueUrl --json id | ConvertFrom-Json).id
         Write-Host "[$title] Issue created: $($issueUrl), now adding to project"
         $item = gh project item-add (Get-ProjectId) --owner (Get-ProjectOwner) --url $issueUrl --format 'json' | ConvertFrom-Json
+        Start-Sleep -Seconds 5 # Wait for the item to be added to the project
         $itemId = $item.id
         $FieldNames = $ProjectFields.Keys
         Write-Host "[$title] Added to the project, now setting fields $($FieldNames -join ', ')"
